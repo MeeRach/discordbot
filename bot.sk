@@ -1,0 +1,161 @@
+options:
+	prefix: ! #Komutun aktif olması için gerekli olan karakter.
+	botname: Bot #Buraya botunuzun adını girin.
+	admins: "Yetkili olmasını istediğiniz kişinin ID'sini yazınız."
+	token: "Botunuzun tokenini yazınız."
+    giriş-çıkış: "Giriş-Çıkış mesajlarının gönderileceği kanalın ID'sini yazınız."
+on load:
+	login to {@token} with the name "{@botname}"
+	mark "{@botname}" as playing "{@prefix}yardım"
+on guild join guild seen by "{@botname}":
+	make embed:
+		set description of last created embed to ":wave: %event-user.getAsMention()% (%name of event-user%##%discriminator of event-user%) sunucuya katıldı! Hoş geldin!"
+		set color of last created embed to green
+		set the timestamp of embed to now
+	send last created embed to channel with id {@giriş-çıkış} with "{@botname}"
+on guild leave guild seen by "{@botname}":
+	make embed:
+		set description of last created embed to ":wave: %mention tag of event-user% (%name of event-user%##%discriminator of event-user%) sunucudan ayrıldı! Güle güle!"
+		set color of last created embed to red
+		set the timestamp of embed to now
+	send last created embed to channel with id {@giriş-çıkış} with "{@botname}"
+discord command yardım:
+	prefixes: {@prefix}
+	executable in: guild
+	bots: {@botname}
+	trigger:
+		make embed:
+			add field named "Bot Komutları" with value "**Discord sunucusu hakkında bilgi almak.** - {@prefix}sunucu discord %nl%**Minecraft sunucusu hakkında bilgi almak.** - {@prefix}sunucu minecraft %nl%**Discord sunucusunda bulunan bir kullanıcı hakkında bilgi almak.** - {@prefix}kullanıcı <kullanıcı>%nl%**Sunucuda bulunan bir oyuncu hakkında bilgi almak.** - {@prefix}oyuncu <oyuncu>" to field of embed
+			set color of last created embed to blue
+		send last created embed to event-user with "{@botname}"
+		reply with ":book: Kullanım kılavuzum sana özel mesaj olarak gönderildi! %mention tag of event-user%"
+discord command duyuru [<text>], [<text>],, [<text>]:
+	prefixes: {@prefix}
+	executable in: guild
+	bots: {@botname}
+	trigger:
+		if arg-1 is set:
+			if arg-2 is set:
+				if id of event-user is {@admins}:
+					purge event-message with event-bot
+					make embed:
+						set footer of embed to footer with text "%event-user%" and icon "%avatar of event-user%"
+						set the timestamp of embed to now
+						set author info of embed to an author named arg-1 with no url and icon icon of event-guild
+						set description of embed to arg-2
+						set color of last created embed to magenta
+						if arg-3 is set:
+							set image of embed to arg-3
+					send last created embed to event-channel with "{@botname}"
+		else:
+			make embed:
+				add field named ":x: Hatalı kullanım" with value "!duyuru <başlık>, <içerik>,, <istiyorsanız bir resim url'si>" to field of embed
+				set color of last created embed to red
+			send last created embed to event-channel with "{@botname}"		
+discord command sunucu [<text>]:
+	prefixes: {@prefix}
+	executable in: guild
+	bots: {@botname}
+	trigger:
+		if arg-1 is "discord" or "dc":
+			make embed:
+				set thumbnail of last created embed to icon of event-guild
+				set title of last created embed to name of event-guild
+				add field named "Üyeler" with value "%size of discord members of event-guild%" to field of embed
+				add field named "Kurucu" with value mention tag of discord owner of event-guild to field of embed
+				add field named "Kuruluş Tarihi" with value "Kuruluş Tarihiniz." to field of embed
+				add field named "Bölge" with value "Sunucu Bölgesi." to field of embed
+				add field named "Roller(%size of roles of event-guild%)" with value join mention tag of roles of event-guild with " " to field of embed
+				set the timestamp of embed to now
+				set color of last created embed to magenta
+			send last created embed to event-channel with "{@botname}"
+		else if arg-1 is "minecraft" or "mc":
+			make embed:
+				set title of last created embed to name of event-guild
+				add field named "IP" with value "..." to field of embed
+				add field named "İnternet Sitesi" with value "..." to field of embed
+				loop players:
+					if loop-player is op:
+						add loop-player to {_y::*}
+					else:
+						add loop-player to {_o::*}
+				set {_y} to "%{_y::*}%"
+				set {_o} to "%{_o::*}%"
+				replace all "and" with "ve" in {_y} and {_o}
+				replace all "<none>" with "Çevrimiçi yok." in {_y} and {_o}
+				add field named "Çevrimiçi Üyeler" with value "%size of players%%nl%%nl%**Üyeler(%size of {_o::*}%)**%nl%%{_o}%%nl%**Yetkililer(%size of {_y::*}%)**%nl%%{_y}%" to field of embed
+				set the timestamp of embed to now
+				set color of last created embed to lime
+			send last created embed to event-channel with "{@botname}"
+		else:
+			make embed:
+				add field named ":x: Hatalı kullanım" with value "!sunucu [discord/minecraft]" to field of embed
+				set color of last created embed to red
+			send last created embed to event-channel with "{@botname}"
+discord command oyuncu [<offline player>]:
+	prefixes: {@prefix}
+	executable in: guild
+	bots: {@botname}
+	trigger:
+		if arg-1 isn't set:
+			make embed:
+				add field named ":x: Hatalı kullanım" with value "!oyuncu <oyuncu>" to field of embed
+				set color of last created embed to red
+			send last created embed to event-channel with "{@botname}"
+		else if first login of arg-1 is set:
+			make embed:
+				set thumbnail of last created embed to "https://cravatar.eu/helmhead/%arg-1%"
+				set title of last created embed to "%arg-1% Hakkında Bilgi"
+				add field named "Parası" with value "%balance of arg-1%" to field of embed
+				add field named "Oyuncunun herhangi bir bilgisi" with value "" to field of embed
+				add field named "Oyuncunun herhangi bir bilgisi" with value "" to field of embed
+				add field named "Sunucuya Katılma Tarihi" with value convert unix (convert date first login of arg-1 to unix) to date formatted as "dd.MM.yyy - HH:mm" to field of embed
+				set color of last created embed to white
+			send last created embed to event-channel with "{@botname}"
+		else:
+			reply with ":x: Bu isimde sunucuya kayıtlı bir oyuncu bulunamadı!"
+discord command avatar [<user>]:
+	prefixes: {@prefix}
+	executable in: guild
+	bots: {@botname}
+	trigger:
+		if arg-1 isn't set:
+			make embed:
+				add field named ":x: Hatalı kullanım" with value "!avatar <isim>" to field of embed
+				
+				set color of last created embed to red
+			send last created embed to event-channel with "{@botname}"
+		else:
+			make embed:
+				set image of embed to "%avatar of arg-1%"
+				set footer of embed to footer with text "%name of arg-1% avatarı"
+				set color of last created embed to cyan
+				send last created embed to event-channel with "{@botname}"
+discord command kullanıcı [<user>]:		
+	prefixes: {@prefix}
+	executable in: guild
+	aliases: bilgi
+	bots: {@botname}
+	trigger:
+		if arg-1 isn't set:
+			make embed:
+				add field named ":x: Hatalı kullanım" with value "!kullanıcı <isim>" to field of embed
+				
+				set color of last created embed to red
+			send last created embed to event-channel with "{@botname}"
+		else:
+			make embed:
+				set thumbnail of last created embed to "%avatar of arg-1%"
+				set title of last created embed to "%arg-1% Hakkında Bilgi"
+				add field named "İsim" with value name of arg-1 to field of embed
+				add field named "ID" with value id of arg-1 to field of embed
+				add field named "Ayrıştırıcı" with value "##%discriminator of arg-1%" to field of embed
+				add field named "Discord Üyelik Tarihi" with value convert unix arg-1.getCreationTime().toEpochSecond() to date formatted as "dd.MM.yyy - HH:mm" to field of embed
+				add field named "Sunucuya Katılma Tarihi" with value convert unix event-guild.getMember(arg-1).getJoinDate().toEpochSecond() to date formatted as "dd.MM.yyy - HH:mm" to field of embed
+				if game of arg-1 is set:
+					add field named "Oyun" with value game of arg-1 to field of embed
+				else:	
+					add field named "Oyun" with value "- Oynamıyor -" to field of embed
+				add field named "Roller(%size of roles of arg-1 in event-guild%)" with value join mention tag of roles of arg-1 in event-guild with " " to field of embed
+				set color of last created embed to orange
+			send last created embed to event-channel with "{@botname}"
